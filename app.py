@@ -351,10 +351,17 @@ elif st.session_state.mode == "manual":
                 if display:
                     st.markdown(f'<div class="chat-ai">{display}</div>', unsafe_allow_html=True)
 
-    # Interview complete — generate report
-    if session.interview_complete:
-        st.success("✅ Interview complete! Ready to generate your report.")
+    # Show generate button when at review stage or interview complete
+    if session.interview_complete or session.current_stage == "review_and_score":
+        st.success("✅ All information collected! You can generate your report now.")
+
+        # Show a summary of collected data
+        if session.collected_data:
+            with st.expander("📋 Review Collected Data", expanded=False):
+                st.json(session.collected_data)
+
         if st.button("🚀 Generate PDF Report", type="primary", use_container_width=True):
+            session.interview_complete = True
             with st.spinner("Scoring your claim and generating PDF..."):
                 try:
                     result = finalise_report(session, output_dir="outputs")
@@ -384,16 +391,28 @@ elif st.session_state.mode == "manual":
                         )
                 except Exception as e:
                     st.error(f"Error generating report: {str(e)}")
-        st.stop()
 
-    # Chat input
-    user_input = st.chat_input("Type your answer here...")
-    if user_input:
-        st.session_state.chat_messages.append({"role": "user", "content": user_input})
-        with st.spinner("AI is thinking..."):
-            response = session.chat(user_input)
-        st.session_state.chat_messages.append({"role": "assistant", "content": response})
-        st.rerun()
+        # Still allow chat for refining answers at review stage
+        if not session.interview_complete:
+            st.markdown("---")
+            st.markdown("*💬 Or continue chatting to refine your answers before generating.*")
+
+    # Chat input (only if interview not complete)
+    if not session.interview_complete:
+        user_input = st.chat_input("Type your answer here...")
+        if user_input:
+            st.session_state.chat_messages.append({"role": "user", "content": user_input})
+            with st.spinner("AI is thinking..."):
+                response = session.chat(user_input)
+            st.session_state.chat_messages.append({"role": "assistant", "content": response})
+
+            # Auto-generate opening message for new stage after transition
+            if not session.interview_complete and "[STAGE_COMPLETE]" in response:
+                with st.spinner("Moving to next section..."):
+                    next_opening = session.get_opening_message()
+                st.session_state.chat_messages.append({"role": "assistant", "content": next_opening})
+
+            st.rerun()
 
     # Collected data sidebar
     if session.collected_data:

@@ -226,10 +226,11 @@ def process_uploaded_document(pdf_path: str, output_dir: str = "outputs") -> dic
     data["scoring"] = scoring
 
     print("Step 5: Generating PDF report...")
-    from utils.pdf_generator import generate_pdf
+    from pdf_generator import generate_pdf
     os.makedirs(output_dir, exist_ok=True)
     safe_name = re.sub(r"[^\w\s-]", "", data.get("project_title", "report")).replace(" ", "_")
-    out_path = os.path.join(output_dir, f"RDTI_{safe_name}_{data.get('financial_year','FY')}.pdf")
+    safe_fy = re.sub(r"[^\w\s-]", "", data.get("financial_year", "FY")).replace(" ", "_")
+    out_path = os.path.join(output_dir, f"RDTI_{safe_name}_{safe_fy}.pdf")
     generate_pdf(data, out_path)
 
     print(f"Done! Report saved to: {out_path}")

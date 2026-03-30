@@ -255,9 +255,10 @@ def finalise_report(session: RDTIInterviewSession, output_dir: str = "outputs") 
     scoring = score_claim(data)
     data["scoring"] = scoring
 
-    from utils.pdf_generator import generate_pdf
+    from pdf_generator import generate_pdf
     os.makedirs(output_dir, exist_ok=True)
     safe_name = re.sub(r"[^\w\s-]", "", data.get("project_title", "report")).replace(" ", "_")
-    out_path = os.path.join(output_dir, f"RDTI_{safe_name}_{data.get('financial_year', 'FY')}.pdf")
+    safe_fy = re.sub(r"[^\w\s-]", "", data.get("financial_year", "FY")).replace(" ", "_")
+    out_path = os.path.join(output_dir, f"RDTI_{safe_name}_{safe_fy}.pdf")
     generate_pdf(data, out_path)
     return {"data": data, "pdf_path": out_path}
