@@ -23,8 +23,87 @@ st.set_page_config(
 # ── Styling ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Page background */
-[data-testid="stAppViewContainer"] { background: #f7f9fc; }
+/* ── Theme-aware CSS variables ──────────────────────────────────────── */
+:root {
+    --rdti-bg: #f7f9fc;
+    --rdti-card-bg: #ffffff;
+    --rdti-card-border: #e0e8f5;
+    --rdti-card-hover-shadow: rgba(46,111,204,0.12);
+    --rdti-card-selected-bg: #eef4fd;
+    --rdti-text-primary: #1a3c6e;
+    --rdti-text-secondary: #666;
+    --rdti-text-body: #333;
+    --rdti-navbar-bg: #1a3c6e;
+    --rdti-navbar-sub: #8ab0e0;
+    --rdti-pill-bg: #eef4fd;
+    --rdti-pill-text: #2e6fcc;
+    --rdti-progress-track: #e0e8f5;
+    --rdti-progress-fill: #2e6fcc;
+    --rdti-chat-ai-bg: #ffffff;
+    --rdti-chat-ai-border: #e0e8f5;
+    --rdti-chat-ai-text: #333;
+    --rdti-chat-user-bg: #1a3c6e;
+    --rdti-result-bg: #ffffff;
+    --rdti-result-border: #e0e8f5;
+    --rdti-bar-label: #444;
+}
+
+/* Dark theme overrides — uses prefers-color-scheme media query */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --rdti-bg: #0e1117;
+        --rdti-card-bg: #1e2130;
+        --rdti-card-border: #2d3348;
+        --rdti-card-hover-shadow: rgba(78,139,230,0.2);
+        --rdti-card-selected-bg: #1c2a4a;
+        --rdti-text-primary: #c5d5ea;
+        --rdti-text-secondary: #9ca3af;
+        --rdti-text-body: #e0e0e0;
+        --rdti-navbar-bg: #14243d;
+        --rdti-navbar-sub: #8ab0e0;
+        --rdti-pill-bg: #1c2a4a;
+        --rdti-pill-text: #6ea8fe;
+        --rdti-progress-track: #2d3348;
+        --rdti-progress-fill: #4e8be6;
+        --rdti-chat-ai-bg: #1e2130;
+        --rdti-chat-ai-border: #2d3348;
+        --rdti-chat-ai-text: #e0e0e0;
+        --rdti-chat-user-bg: #1a3766;
+        --rdti-result-bg: #1e2130;
+        --rdti-result-border: #2d3348;
+        --rdti-bar-label: #b0b8c8;
+    }
+}
+
+/* Streamlit-specific dark mode selectors (for explicit theme setting) */
+[data-theme="dark"] {
+    --rdti-bg: #0e1117;
+    --rdti-card-bg: #1e2130;
+    --rdti-card-border: #2d3348;
+    --rdti-card-hover-shadow: rgba(78,139,230,0.2);
+    --rdti-card-selected-bg: #1c2a4a;
+    --rdti-text-primary: #c5d5ea;
+    --rdti-text-secondary: #9ca3af;
+    --rdti-text-body: #e0e0e0;
+    --rdti-navbar-bg: #14243d;
+    --rdti-navbar-sub: #8ab0e0;
+    --rdti-pill-bg: #1c2a4a;
+    --rdti-pill-text: #6ea8fe;
+    --rdti-progress-track: #2d3348;
+    --rdti-progress-fill: #4e8be6;
+    --rdti-chat-ai-bg: #1e2130;
+    --rdti-chat-ai-border: #2d3348;
+    --rdti-chat-ai-text: #e0e0e0;
+    --rdti-chat-user-bg: #1a3766;
+    --rdti-result-bg: #1e2130;
+    --rdti-result-border: #2d3348;
+    --rdti-bar-label: #b0b8c8;
+}
+
+/* Streamlit uses a specific selector for dark mode on deployed apps */
+[data-testid="stAppViewContainer"] {
+    background: var(--rdti-bg);
+}
 [data-testid="stHeader"] { background: transparent; }
 
 /* Hide streamlit branding */
@@ -32,7 +111,7 @@ st.markdown("""
 
 /* Top nav bar */
 .rdti-navbar {
-    background: #1a3c6e;
+    background: var(--rdti-navbar-bg);
     padding: 14px 28px;
     border-radius: 10px;
     margin-bottom: 24px;
@@ -47,14 +126,14 @@ st.markdown("""
     font-weight: 600;
 }
 .rdti-navbar span {
-    color: #8ab0e0;
+    color: var(--rdti-navbar-sub);
     font-size: 13px;
 }
 
 /* Mode cards */
 .mode-card {
-    background: white;
-    border: 2px solid #e0e8f5;
+    background: var(--rdti-card-bg);
+    border: 2px solid var(--rdti-card-border);
     border-radius: 12px;
     padding: 28px 24px;
     text-align: center;
@@ -66,11 +145,25 @@ st.markdown("""
     align-items: center;
     justify-content: center;
 }
-.mode-card:hover { border-color: #2e6fcc; box-shadow: 0 4px 16px rgba(46,111,204,0.12); }
-.mode-card.selected { border-color: #2e6fcc; background: #eef4fd; }
+.mode-card:hover {
+    border-color: var(--rdti-progress-fill);
+    box-shadow: 0 4px 16px var(--rdti-card-hover-shadow);
+}
+.mode-card.selected {
+    border-color: var(--rdti-progress-fill);
+    background: var(--rdti-card-selected-bg);
+}
 .mode-icon { font-size: 36px; margin-bottom: 10px; }
-.mode-title { font-size: 16px; font-weight: 600; color: #1a3c6e; margin-bottom: 6px; }
-.mode-desc { font-size: 13px; color: #666; }
+.mode-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--rdti-text-primary);
+    margin-bottom: 6px;
+}
+.mode-desc {
+    font-size: 13px;
+    color: var(--rdti-text-secondary);
+}
 
 /* Score badge */
 .score-badge {
@@ -88,7 +181,7 @@ st.markdown("""
 
 /* Chat bubbles */
 .chat-user {
-    background: #1a3c6e;
+    background: var(--rdti-chat-user-bg);
     color: white;
     padding: 10px 16px;
     border-radius: 16px 16px 4px 16px;
@@ -97,18 +190,18 @@ st.markdown("""
     line-height: 1.5;
 }
 .chat-ai {
-    background: white;
-    color: #333;
+    background: var(--rdti-chat-ai-bg);
+    color: var(--rdti-chat-ai-text);
     padding: 10px 16px;
     border-radius: 16px 16px 16px 4px;
     margin: 6px 60px 6px 0;
     font-size: 14px;
     line-height: 1.5;
-    border: 1px solid #e0e8f5;
+    border: 1px solid var(--rdti-chat-ai-border);
 }
 .stage-pill {
-    background: #eef4fd;
-    color: #2e6fcc;
+    background: var(--rdti-pill-bg);
+    color: var(--rdti-pill-text);
     border-radius: 12px;
     padding: 4px 12px;
     font-size: 12px;
@@ -117,18 +210,61 @@ st.markdown("""
     margin-bottom: 10px;
 }
 .progress-bar-wrap {
-    background: #e0e8f5;
+    background: var(--rdti-progress-track);
     border-radius: 8px;
     height: 8px;
     margin: 8px 0 16px;
 }
 .progress-bar-fill {
-    background: #2e6fcc;
+    background: var(--rdti-progress-fill);
     border-radius: 8px;
     height: 8px;
     transition: width 0.4s;
 }
+
+/* Result card (used inline) */
+.rdti-result-card {
+    background: var(--rdti-result-bg);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--rdti-result-border);
+    margin: 16px 0;
+}
+.rdti-result-card h3 {
+    color: var(--rdti-text-primary);
+    margin-top: 0;
+}
+.rdti-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--rdti-bar-label);
+    margin-bottom: 3px;
+}
+.rdti-bar-label span:last-child {
+    font-weight: 600;
+}
 </style>
+
+<script>
+// Detect Streamlit dark mode by checking background color and set data-theme attribute
+(function detectTheme() {
+    function applyTheme() {
+        const app = document.querySelector('[data-testid="stAppViewContainer"]');
+        if (!app) { setTimeout(applyTheme, 200); return; }
+        const bg = window.getComputedStyle(app).backgroundColor;
+        // Streamlit dark default bg is rgb(14, 17, 23) or similar dark values
+        const match = bg.match(/\d+/g);
+        if (match) {
+            const brightness = (parseInt(match[0]) + parseInt(match[1]) + parseInt(match[2])) / 3;
+            document.documentElement.setAttribute('data-theme', brightness < 80 ? 'dark' : 'light');
+        }
+    }
+    applyTheme();
+    // Re-check periodically in case of theme change
+    setInterval(applyTheme, 2000);
+})();
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -246,8 +382,8 @@ if st.session_state.mode == "upload":
             cls = "score-strong" if total >= 80 else "score-likely" if total >= 65 else "score-risk" if total >= 50 else "score-unlikely"
 
             st.markdown(f"""
-            <div style="background:white;border-radius:12px;padding:24px;border:1px solid #e0e8f5;margin:16px 0">
-                <h3 style="color:#1a3c6e;margin-top:0">RDTI Eligibility Score</h3>
+            <div class="rdti-result-card">
+                <h3>RDTI Eligibility Score</h3>
                 <div class="score-badge {cls}">{total}/100 — {outcome}</div>
             """, unsafe_allow_html=True)
 
@@ -257,9 +393,9 @@ if st.session_state.mode == "upload":
                     pct = int((item["score"] / item["max"]) * 100) if item["max"] else 0
                     st.markdown(f"""
                     <div style="margin:6px 0">
-                        <div style="display:flex;justify-content:space-between;font-size:13px;color:#444;margin-bottom:3px">
+                        <div class="rdti-bar-label">
                             <span>{item['category']}</span>
-                            <span style="font-weight:600">{item['score']}/{item['max']}</span>
+                            <span>{item['score']}/{item['max']}</span>
                         </div>
                         <div class="progress-bar-wrap">
                             <div class="progress-bar-fill" style="width:{pct}%"></div>
@@ -374,8 +510,8 @@ elif st.session_state.mode == "manual":
                     cls = "score-strong" if total >= 80 else "score-likely" if total >= 65 else "score-risk" if total >= 50 else "score-unlikely"
 
                     st.markdown(f"""
-                    <div style="background:white;border-radius:12px;padding:20px;border:1px solid #e0e8f5;margin:12px 0">
-                        <h3 style="color:#1a3c6e;margin-top:0">Final Score</h3>
+                    <div class="rdti-result-card">
+                        <h3>Final Score</h3>
                         <div class="score-badge {cls}">{total}/100 — {outcome}</div>
                     </div>
                     """, unsafe_allow_html=True)
