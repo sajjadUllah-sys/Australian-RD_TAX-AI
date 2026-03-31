@@ -21,119 +21,69 @@ st.set_page_config(
 )
 
 # ── Styling ────────────────────────────────────────────────────────────────────
-st.markdown("""
+# Detect theme on the Python side — reliable on all deployments
+_theme_base = st.get_option("theme.base")
+_is_dark = (_theme_base == "dark") if _theme_base else True  # default dark
+
+# Pick colors based on detected theme
+_c = {
+    "bg":               "#0e1117"              if _is_dark else "#f7f9fc",
+    "card_bg":          "#1e2130"              if _is_dark else "#ffffff",
+    "card_border":      "#2d3348"              if _is_dark else "#e0e8f5",
+    "card_hover":       "rgba(78,139,230,0.2)" if _is_dark else "rgba(46,111,204,0.12)",
+    "card_selected_bg": "#1c2a4a"              if _is_dark else "#eef4fd",
+    "text_primary":     "#c5d5ea"              if _is_dark else "#1a3c6e",
+    "text_secondary":   "#9ca3af"              if _is_dark else "#666666",
+    "text_body":        "#e0e0e0"              if _is_dark else "#333333",
+    "navbar_bg":        "#14243d"              if _is_dark else "#1a3c6e",
+    "navbar_sub":       "#8ab0e0"              if _is_dark else "#8ab0e0",
+    "pill_bg":          "#1c2a4a"              if _is_dark else "#eef4fd",
+    "pill_text":        "#6ea8fe"              if _is_dark else "#2e6fcc",
+    "progress_track":   "#2d3348"              if _is_dark else "#e0e8f5",
+    "progress_fill":    "#4e8be6"              if _is_dark else "#2e6fcc",
+    "chat_ai_bg":       "#1e2130"              if _is_dark else "#ffffff",
+    "chat_ai_border":   "#2d3348"              if _is_dark else "#e0e8f5",
+    "chat_ai_text":     "#e0e0e0"              if _is_dark else "#333333",
+    "chat_user_bg":     "#1a3766"              if _is_dark else "#1a3c6e",
+    "result_bg":        "#1e2130"              if _is_dark else "#ffffff",
+    "result_border":    "#2d3348"              if _is_dark else "#e0e8f5",
+    "bar_label":        "#b0b8c8"              if _is_dark else "#444444",
+}
+
+st.markdown(f"""
 <style>
-/* ── Theme-aware CSS variables ──────────────────────────────────────── */
-:root {
-    --rdti-bg: #f7f9fc;
-    --rdti-card-bg: #ffffff;
-    --rdti-card-border: #e0e8f5;
-    --rdti-card-hover-shadow: rgba(46,111,204,0.12);
-    --rdti-card-selected-bg: #eef4fd;
-    --rdti-text-primary: #1a3c6e;
-    --rdti-text-secondary: #666;
-    --rdti-text-body: #333;
-    --rdti-navbar-bg: #1a3c6e;
-    --rdti-navbar-sub: #8ab0e0;
-    --rdti-pill-bg: #eef4fd;
-    --rdti-pill-text: #2e6fcc;
-    --rdti-progress-track: #e0e8f5;
-    --rdti-progress-fill: #2e6fcc;
-    --rdti-chat-ai-bg: #ffffff;
-    --rdti-chat-ai-border: #e0e8f5;
-    --rdti-chat-ai-text: #333;
-    --rdti-chat-user-bg: #1a3c6e;
-    --rdti-result-bg: #ffffff;
-    --rdti-result-border: #e0e8f5;
-    --rdti-bar-label: #444;
-}
-
-/* Dark theme overrides — uses prefers-color-scheme media query */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --rdti-bg: #0e1117;
-        --rdti-card-bg: #1e2130;
-        --rdti-card-border: #2d3348;
-        --rdti-card-hover-shadow: rgba(78,139,230,0.2);
-        --rdti-card-selected-bg: #1c2a4a;
-        --rdti-text-primary: #c5d5ea;
-        --rdti-text-secondary: #9ca3af;
-        --rdti-text-body: #e0e0e0;
-        --rdti-navbar-bg: #14243d;
-        --rdti-navbar-sub: #8ab0e0;
-        --rdti-pill-bg: #1c2a4a;
-        --rdti-pill-text: #6ea8fe;
-        --rdti-progress-track: #2d3348;
-        --rdti-progress-fill: #4e8be6;
-        --rdti-chat-ai-bg: #1e2130;
-        --rdti-chat-ai-border: #2d3348;
-        --rdti-chat-ai-text: #e0e0e0;
-        --rdti-chat-user-bg: #1a3766;
-        --rdti-result-bg: #1e2130;
-        --rdti-result-border: #2d3348;
-        --rdti-bar-label: #b0b8c8;
-    }
-}
-
-/* Streamlit-specific dark mode selectors (for explicit theme setting) */
-[data-theme="dark"] {
-    --rdti-bg: #0e1117;
-    --rdti-card-bg: #1e2130;
-    --rdti-card-border: #2d3348;
-    --rdti-card-hover-shadow: rgba(78,139,230,0.2);
-    --rdti-card-selected-bg: #1c2a4a;
-    --rdti-text-primary: #c5d5ea;
-    --rdti-text-secondary: #9ca3af;
-    --rdti-text-body: #e0e0e0;
-    --rdti-navbar-bg: #14243d;
-    --rdti-navbar-sub: #8ab0e0;
-    --rdti-pill-bg: #1c2a4a;
-    --rdti-pill-text: #6ea8fe;
-    --rdti-progress-track: #2d3348;
-    --rdti-progress-fill: #4e8be6;
-    --rdti-chat-ai-bg: #1e2130;
-    --rdti-chat-ai-border: #2d3348;
-    --rdti-chat-ai-text: #e0e0e0;
-    --rdti-chat-user-bg: #1a3766;
-    --rdti-result-bg: #1e2130;
-    --rdti-result-border: #2d3348;
-    --rdti-bar-label: #b0b8c8;
-}
-
-/* Streamlit uses a specific selector for dark mode on deployed apps */
-[data-testid="stAppViewContainer"] {
-    background: var(--rdti-bg);
-}
-[data-testid="stHeader"] { background: transparent; }
+/* Page background */
+[data-testid="stAppViewContainer"] {{ background: {_c['bg']}; }}
+[data-testid="stHeader"] {{ background: transparent; }}
 
 /* Hide streamlit branding */
-#MainMenu, footer { visibility: hidden; }
+#MainMenu, footer {{ visibility: hidden; }}
 
 /* Top nav bar */
-.rdti-navbar {
-    background: var(--rdti-navbar-bg);
+.rdti-navbar {{
+    background: {_c['navbar_bg']};
     padding: 14px 28px;
     border-radius: 10px;
     margin-bottom: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-}
-.rdti-navbar h1 {
+}}
+.rdti-navbar h1 {{
     color: white;
     font-size: 20px;
     margin: 0;
     font-weight: 600;
-}
-.rdti-navbar span {
-    color: var(--rdti-navbar-sub);
+}}
+.rdti-navbar span {{
+    color: {_c['navbar_sub']};
     font-size: 13px;
-}
+}}
 
 /* Mode cards */
-.mode-card {
-    background: var(--rdti-card-bg);
-    border: 2px solid var(--rdti-card-border);
+.mode-card {{
+    background: {_c['card_bg']};
+    border: 2px solid {_c['card_border']};
     border-radius: 12px;
     padding: 28px 24px;
     text-align: center;
@@ -144,127 +94,107 @@ st.markdown("""
     flex-direction: column;
     align-items: center;
     justify-content: center;
-}
-.mode-card:hover {
-    border-color: var(--rdti-progress-fill);
-    box-shadow: 0 4px 16px var(--rdti-card-hover-shadow);
-}
-.mode-card.selected {
-    border-color: var(--rdti-progress-fill);
-    background: var(--rdti-card-selected-bg);
-}
-.mode-icon { font-size: 36px; margin-bottom: 10px; }
-.mode-title {
+}}
+.mode-card:hover {{
+    border-color: {_c['progress_fill']};
+    box-shadow: 0 4px 16px {_c['card_hover']};
+}}
+.mode-card.selected {{
+    border-color: {_c['progress_fill']};
+    background: {_c['card_selected_bg']};
+}}
+.mode-icon {{ font-size: 36px; margin-bottom: 10px; }}
+.mode-title {{
     font-size: 16px;
     font-weight: 600;
-    color: var(--rdti-text-primary);
+    color: {_c['text_primary']};
     margin-bottom: 6px;
-}
-.mode-desc {
+}}
+.mode-desc {{
     font-size: 13px;
-    color: var(--rdti-text-secondary);
-}
+    color: {_c['text_secondary']};
+}}
 
 /* Score badge */
-.score-badge {
+.score-badge {{
     display: inline-block;
     padding: 6px 16px;
     border-radius: 20px;
     font-weight: 700;
     font-size: 15px;
     margin-bottom: 8px;
-}
-.score-strong { background: #d4f0e0; color: #1a7a4a; }
-.score-likely { background: #dbeafe; color: #1a3c6e; }
-.score-risk { background: #fef3cd; color: #856404; }
-.score-unlikely { background: #fde8e8; color: #c0392b; }
+}}
+.score-strong {{ background: #d4f0e0; color: #1a7a4a; }}
+.score-likely {{ background: #dbeafe; color: #1a3c6e; }}
+.score-risk {{ background: #fef3cd; color: #856404; }}
+.score-unlikely {{ background: #fde8e8; color: #c0392b; }}
 
 /* Chat bubbles */
-.chat-user {
-    background: var(--rdti-chat-user-bg);
+.chat-user {{
+    background: {_c['chat_user_bg']};
     color: white;
     padding: 10px 16px;
     border-radius: 16px 16px 4px 16px;
     margin: 6px 0 6px 60px;
     font-size: 14px;
     line-height: 1.5;
-}
-.chat-ai {
-    background: var(--rdti-chat-ai-bg);
-    color: var(--rdti-chat-ai-text);
+}}
+.chat-ai {{
+    background: {_c['chat_ai_bg']};
+    color: {_c['chat_ai_text']};
     padding: 10px 16px;
     border-radius: 16px 16px 16px 4px;
     margin: 6px 60px 6px 0;
     font-size: 14px;
     line-height: 1.5;
-    border: 1px solid var(--rdti-chat-ai-border);
-}
-.stage-pill {
-    background: var(--rdti-pill-bg);
-    color: var(--rdti-pill-text);
+    border: 1px solid {_c['chat_ai_border']};
+}}
+.stage-pill {{
+    background: {_c['pill_bg']};
+    color: {_c['pill_text']};
     border-radius: 12px;
     padding: 4px 12px;
     font-size: 12px;
     font-weight: 600;
     display: inline-block;
     margin-bottom: 10px;
-}
-.progress-bar-wrap {
-    background: var(--rdti-progress-track);
+}}
+.progress-bar-wrap {{
+    background: {_c['progress_track']};
     border-radius: 8px;
     height: 8px;
     margin: 8px 0 16px;
-}
-.progress-bar-fill {
-    background: var(--rdti-progress-fill);
+}}
+.progress-bar-fill {{
+    background: {_c['progress_fill']};
     border-radius: 8px;
     height: 8px;
     transition: width 0.4s;
-}
+}}
 
-/* Result card (used inline) */
-.rdti-result-card {
-    background: var(--rdti-result-bg);
+/* Result card */
+.rdti-result-card {{
+    background: {_c['result_bg']};
     border-radius: 12px;
     padding: 24px;
-    border: 1px solid var(--rdti-result-border);
+    border: 1px solid {_c['result_border']};
     margin: 16px 0;
-}
-.rdti-result-card h3 {
-    color: var(--rdti-text-primary);
+}}
+.rdti-result-card h3 {{
+    color: {_c['text_primary']};
     margin-top: 0;
-}
-.rdti-bar-label {
+}}
+.rdti-bar-label {{
     display: flex;
     justify-content: space-between;
     font-size: 13px;
-    color: var(--rdti-bar-label);
+    color: {_c['bar_label']};
     margin-bottom: 3px;
-}
-.rdti-bar-label span:last-child {
+}}
+.rdti-bar-label span:last-child {{
     font-weight: 600;
-}
+}}
 </style>
-
-<script>
-// Detect Streamlit dark mode by checking background color and set data-theme attribute
-(function detectTheme() {
-    function applyTheme() {
-        const app = document.querySelector('[data-testid="stAppViewContainer"]');
-        if (!app) { setTimeout(applyTheme, 200); return; }
-        const bg = window.getComputedStyle(app).backgroundColor;
-        // Streamlit dark default bg is rgb(14, 17, 23) or similar dark values
-        const match = bg.match(/\d+/g);
-        if (match) {
-            const brightness = (parseInt(match[0]) + parseInt(match[1]) + parseInt(match[2])) / 3;
-            document.documentElement.setAttribute('data-theme', brightness < 80 ? 'dark' : 'light');
-        }
-    }
-    applyTheme();
-    // Re-check periodically in case of theme change
-    setInterval(applyTheme, 2000);
-})();
-</script>
 """, unsafe_allow_html=True)
 
 
