@@ -113,15 +113,27 @@ def build_cover(story, styles, data):
     story.append(cover_table)
     story.append(Spacer(1, 0.8 * cm))
 
+    # Build Industry display: "Manufacturing (C)" or just the raw value
+    industry_display = data.get("industry", "")
+    anzsic_code = data.get("anzsic", "")
+    if industry_display and anzsic_code:
+        industry_display = f"{industry_display} ({anzsic_code})"
+    elif not industry_display:
+        industry_display = anzsic_code or "—"
+
+    project_type = data.get("project_type", "new").title()
+
     meta = [
         ["Company", data.get("company_name", "—")],
         ["ABN", data.get("abn", "—")],
+        ["Contact Person", data.get("contact_person", "—")],
+        ["Project Type", project_type],
         ["Project Title", data.get("project_title", "—")],
+        ["Financial Year", data.get("financial_year", "—")],
         ["Start Date", data.get("start_date", "—")],
         ["End Date", data.get("end_date", "—")],
-        ["Industry / ANZSIC", data.get("anzsic", "—")],
+        ["Industry", industry_display],
         ["Budgeted R&D Spend", data.get("budget", "—")],
-        ["Contact Person", data.get("contact_person", "—")],
     ]
     meta_table = Table(meta, colWidths=[5 * cm, 13 * cm])
     meta_table.setStyle(TableStyle([
@@ -207,6 +219,7 @@ def build_score_section(story, styles, scoring):
 def build_project_overview(story, styles, data):
     story.append(Paragraph("Part A — R&D Plan Overview", styles["section_heading"]))
 
+    # Standard overview fields
     fields = [
         ("Project Objective", data.get("project_objective", "")),
         ("Record Keeping", data.get("record_keeping", "")),
@@ -217,6 +230,23 @@ def build_project_overview(story, styles, data):
             story.append(Paragraph(label, styles["label"]))
             story.append(Paragraph(value or "—", styles["body"]))
             story.append(Spacer(1, 0.2 * cm))
+
+    # Continuing project update fields
+    continuing_fields = [
+        ("Experiments Conducted (Annual Update)", data.get("continuing_experiments", "")),
+        ("Evaluation of Results (Annual Update)", data.get("continuing_evaluation", "")),
+        ("Conclusions (Annual Update)", data.get("continuing_conclusions", "")),
+        ("New Knowledge (Annual Update)", data.get("continuing_new_knowledge", "")),
+    ]
+    has_continuing = any(v for _, v in continuing_fields)
+    if has_continuing:
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(Paragraph("Continuing Project — Annual Updates", styles["sub_heading"]))
+        for label, value in continuing_fields:
+            if value:
+                story.append(Paragraph(label, styles["label"]))
+                story.append(Paragraph(value, styles["body"]))
+                story.append(Spacer(1, 0.2 * cm))
 
 
 def build_activities(story, styles, activities):

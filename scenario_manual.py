@@ -4,6 +4,13 @@ scenario_manual.py
 Scenario 2 — Fill In Manually (Chat Interview)
 The AI conducts a structured, conversational interview to collect
 all required R&D project data, then scores and generates the PDF.
+
+Changes:
+- Company details collected FIRST (before project basics)
+- New/continuing project toggle after company info
+- Financial year & industry pre-populated via UI dropdowns (not asked by AI)
+- Continuing projects skip to 4 update fields with char limits
+- Stronger one-question-at-a-time sequencing in all prompts
 """
 
 import os
@@ -18,9 +25,11 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ── Interview stages ───────────────────────────────────────────────────────────
 
-INTERVIEW_STAGES = [
-    "project_basics",
+# Full flow for NEW projects
+INTERVIEW_STAGES_NEW = [
     "company_details",
+    "project_type",
+    "project_basics",
     "project_overview",
     "core_activities",
     "supporting_activities",
@@ -28,38 +37,84 @@ INTERVIEW_STAGES = [
     "review_and_score",
 ]
 
+# Shortened flow for CONTINUING projects
+INTERVIEW_STAGES_CONTINUING = [
+    "company_details",
+    "project_type",
+    "continuing_updates",
+    "review_and_score",
+]
+
+# Default — starts as the full list; gets swapped if user picks "continuing"
+INTERVIEW_STAGES = INTERVIEW_STAGES_NEW
+
+# Stage labels for progress display (new project)
+STAGE_LABELS_NEW = [
+    "Company Details", "Project Type", "Project Basics", "Project Overview",
+    "Core Activities", "Supporting Activities", "Recordkeeping", "Review",
+]
+
+STAGE_LABELS_CONTINUING = [
+    "Company Details", "Project Type", "Annual Updates", "Review",
+]
+
+
+# ── Prompts ────────────────────────────────────────────────────────────────────
+
 STAGE_PROMPTS = {
-    "project_basics": """You are collecting basic project information for an Australian RDTI (R&D Tax Incentive) claim.
-Ask the user for:
-1. Project title
-2. Financial year (e.g. FY 2024-25)
-3. Project start date and end date
-4. Industry / ANZSIC class
-5. Budgeted R&D spend
-
-Ask these naturally in conversation — one or two at a time. When you have all of them, say exactly: [STAGE_COMPLETE]
-and summarise what was collected as JSON in a <data> block like: <data>{"project_title": "..."}</data>""",
-
-    "company_details": """You are collecting company details for an RDTI claim.
-Ask for:
+    "company_details": """You are collecting company details for an Australian RDTI (R&D Tax Incentive) claim.
+Ask for these details ONE AT A TIME — ask a single question, wait for the answer, then ask the next:
 1. Company legal name
-2. ABN
+2. ABN (Australian Business Number — must be exactly 11 digits)
 3. Contact person name
 4. Contact email address
 
-Ask naturally. When complete, say [STAGE_COMPLETE] and summarise as JSON in a <data> block.""",
+IMPORTANT RULES:
+- Ask ONE question at a time. Do NOT bundle questions.
+- If the user provides an ABN that is not exactly 11 digits, politely ask them to re-enter it.
+- When you have all 4 items, say [STAGE_COMPLETE] and summarise as JSON in a <data> block like:
+  <data>{"company_name": "...", "abn": "...", "contact_person": "...", "contact_email": "..."}</data>""",
+
+    "project_type": """You are determining whether this is a new or continuing R&D project for an RDTI claim.
+
+Ask the user: "Is this a new R&D project, or are you providing annual updates for a continuing project?"
+
+Wait for their answer. Classify their response as either "new" or "continuing".
+
+When you have their answer, say [STAGE_COMPLETE] and output:
+<data>{"project_type": "new"}</data>
+or
+<data>{"project_type": "continuing"}</data>""",
+
+    "project_basics": """You are collecting basic project information for an Australian RDTI claim.
+The financial year and industry have already been selected by the user via dropdowns — do NOT ask for them again.
+
+Ask the user for these details ONE AT A TIME:
+1. Project title
+2. Project start date
+3. Project end date
+4. Budgeted R&D spend
+
+IMPORTANT RULES:
+- Ask ONE question at a time. Do NOT bundle questions together.
+- Wait for each answer before asking the next question.
+- When you have all items, say exactly: [STAGE_COMPLETE]
+  and summarise what was collected as JSON in a <data> block like:
+  <data>{"project_title": "...", "start_date": "...", "end_date": "...", "budget": "..."}</data>""",
 
     "project_overview": """You are collecting the project overview for an RDTI claim.
-Ask for:
+Ask for these details ONE AT A TIME — do NOT bundle questions:
 1. Project objective — what problem does it solve? What are the specific measurable targets?
 2. Record keeping — what documentation does the company keep? (experiment logs, design docs, test results, etc.)
 3. IP / Know-how beneficiary — who owns the IP? Who controls and funds the R&D?
 
-Use ATO-compliant language. Prompt for specifics: quantified targets, field conditions, technical constraints.
-When complete, say [STAGE_COMPLETE] and summarise as JSON in a <data> block.""",
+IMPORTANT RULES:
+- Ask ONE question at a time. Wait for each answer before asking the next.
+- Use ATO-compliant language. Prompt for specifics: quantified targets, field conditions, technical constraints.
+- When complete, say [STAGE_COMPLETE] and summarise as JSON in a <data> block.""",
 
     "core_activities": """You are collecting CORE R&D activity details for an RDTI claim.
-For each core activity, you must collect:
+For each core activity, you must collect ALL of these fields — ask them ONE AT A TIME:
 1. Activity title and date range
 2. Description of what was done
 3. Hypothesis — what did you believe you could achieve?
@@ -71,17 +126,20 @@ For each core activity, you must collect:
 9. Conclusions reached (including failures and what was learned)
 10. New knowledge generated
 
-Ask one topic at a time. Use probing follow-ups:
-- "What specifically was unknown at the start?"
-- "What failed, and what did you learn from that failure?"
-- "How did you measure success?"
-- "Would a competent engineer have known this without experimenting?"
-
-When the user indicates no more core activities, say [STAGE_COMPLETE] and output all activities as JSON in a <data> block:
-<data>{"activities": [{"title": "", "type": "Core", "hypothesis": "", ...}]}</data>""",
+CRITICAL RULES:
+- Ask ONLY ONE question at a time. Never bundle multiple questions.
+- Wait for the user's response before asking the next question.
+- Use probing follow-ups when answers are vague:
+  * "What specifically was unknown at the start?"
+  * "What failed, and what did you learn from that failure?"
+  * "How did you measure success?"
+  * "Would a competent engineer have known this without experimenting?"
+- After completing one activity, ask: "Do you have any more core R&D activities to add?"
+- When the user indicates no more core activities, say [STAGE_COMPLETE] and output all activities as JSON:
+  <data>{"activities": [{"title": "", "type": "Core", "hypothesis": "", ...}]}</data>""",
 
     "supporting_activities": """You are collecting SUPPORTING R&D activity details.
-For each supporting activity, collect:
+For each supporting activity, collect these details ONE AT A TIME:
 1. Title and which core activity it supports
 2. Description of the activity
 3. How it directly supported the core R&D (the link must be explicit)
@@ -89,17 +147,50 @@ For each supporting activity, collect:
 5. Did it produce goods or services? (yes/no + explanation)
 6. Evidence kept
 
-When done, say [STAGE_COMPLETE] and summarise as JSON in a <data> block:
-<data>{"supporting_activities": [{"title": "", "linkage": "", ...}]}</data>""",
+IMPORTANT RULES:
+- Ask ONE question at a time. Wait for each answer before continuing.
+- When done, say [STAGE_COMPLETE] and summarise as JSON in a <data> block:
+  <data>{"supporting_activities": [{"title": "", "linkage": "", ...}]}</data>""",
 
     "recordkeeping": """You are finalising the RDTI claim record-keeping section.
-Ask about:
+Ask about these topics ONE AT A TIME:
 1. Types of evidence kept (experiment logs, test results, version control, photos, meeting notes, invoices)
 2. Confirm who bears the financial burden of R&D
 3. Confirm who controls the direction of R&D
 4. Any overseas work or Research Service Provider involvement?
 
-When done, say [STAGE_COMPLETE] and summarise as JSON in a <data> block.""",
+IMPORTANT RULES:
+- Ask ONE question at a time. Do NOT bundle questions.
+- When done, say [STAGE_COMPLETE] and summarise as JSON in a <data> block.""",
+
+    "continuing_updates": """You are collecting annual update information for a CONTINUING R&D project for an RDTI claim.
+The financial year has already been selected by the user.
+
+You need to collect FOUR pieces of information, ONE AT A TIME.
+Each answer has a minimum and maximum character count — inform the user of the limits.
+
+Ask these questions ONE AT A TIME in this exact order:
+
+1. "What experiment/s were conducted in the current financial year and how did they test the hypothesis?"
+   (Minimum 650 characters, maximum 4000 characters)
+
+2. "How did you evaluate or plan to evaluate the results from those experiment/s?"
+   (Minimum 530 characters, maximum 4000 characters)
+
+3. "Describe the conclusions you've reached from the experiment/s."
+   (Minimum 340 characters, maximum 4000 characters)
+
+4. "What is the New Knowledge generated?"
+   (Minimum 600 characters, maximum 4000 characters)
+
+CRITICAL RULES:
+- Ask ONLY ONE question at a time. Never combine questions.
+- After each answer, count the characters and tell the user the count.
+- If the answer is below the minimum, ask the user to expand their response with more detail.
+- If the answer exceeds the maximum, ask the user to shorten it.
+- Only move to the next question when the current answer meets the character requirements.
+- When all 4 questions are answered with valid lengths, say [STAGE_COMPLETE] and output:
+  <data>{"continuing_experiments": "...", "continuing_evaluation": "...", "continuing_conclusions": "...", "continuing_new_knowledge": "..."}</data>""",
 
     "review_and_score": """You are reviewing the complete RDTI claim before final report generation.
 Summarise everything collected so far for the user. Then:
@@ -107,7 +198,16 @@ Summarise everything collected so far for the user. Then:
 2. Ask if the user wants to strengthen any answers
 3. Confirm readiness to generate the PDF
 
-When the user confirms, say [STAGE_COMPLETE] and output: <data>{"ready": true}</data>"""
+When the user confirms, say [STAGE_COMPLETE] and output: <data>{"ready": true}</data>""",
+}
+
+
+# Character limits for continuing project fields
+CONTINUING_CHAR_LIMITS = {
+    "continuing_experiments":   {"min": 650, "max": 4000},
+    "continuing_evaluation":    {"min": 530, "max": 4000},
+    "continuing_conclusions":   {"min": 340, "max": 4000},
+    "continuing_new_knowledge": {"min": 600, "max": 4000},
 }
 
 
@@ -120,12 +220,35 @@ class RDTIInterviewSession:
         self.history = []
         self.stage_complete = False
         self.interview_complete = False
+        self.project_type = None  # "new" or "continuing"
+        self._stages = list(INTERVIEW_STAGES_NEW)  # mutable copy
+
+    @property
+    def stages(self):
+        return self._stages
 
     @property
     def current_stage(self):
-        if self.stage_index < len(INTERVIEW_STAGES):
-            return INTERVIEW_STAGES[self.stage_index]
+        if self.stage_index < len(self._stages):
+            return self._stages[self.stage_index]
         return None
+
+    def get_stage_labels(self):
+        if self.project_type == "continuing":
+            return STAGE_LABELS_CONTINUING
+        return STAGE_LABELS_NEW
+
+    def switch_to_continuing(self):
+        """Switch to the shortened continuing-project flow."""
+        self.project_type = "continuing"
+        self._stages = list(INTERVIEW_STAGES_CONTINUING)
+        # We're currently at project_type (index 1), so stage_index stays at 1
+        # The next stage_index increment will move to continuing_updates (index 2)
+
+    def switch_to_new(self):
+        """Confirm new-project flow (already the default)."""
+        self.project_type = "new"
+        self._stages = list(INTERVIEW_STAGES_NEW)
 
     def get_system_prompt(self):
         stage = self.current_stage
@@ -154,9 +277,18 @@ class RDTIInterviewSession:
         # Check for stage completion
         if "[STAGE_COMPLETE]" in assistant_msg:
             self._extract_and_merge_data(assistant_msg)
+
+            # Handle project_type stage — switch flow if continuing
+            if self.current_stage == "project_type":
+                pt = self.collected_data.get("project_type", "new").lower().strip()
+                if pt == "continuing":
+                    self.switch_to_continuing()
+                else:
+                    self.switch_to_new()
+
             self.stage_index += 1
             self.history = []  # Fresh history for next stage
-            if self.stage_index >= len(INTERVIEW_STAGES):
+            if self.stage_index >= len(self._stages):
                 self.interview_complete = True
 
         return assistant_msg
@@ -210,6 +342,31 @@ class RDTIInterviewSession:
         msg = response.choices[0].message.content
         self.history.append({"role": "assistant", "content": msg})
         return msg
+
+    def to_dict(self) -> dict:
+        """Serialise session state for localStorage persistence."""
+        return {
+            "stage_index": self.stage_index,
+            "collected_data": self.collected_data,
+            "history": self.history,
+            "stage_complete": self.stage_complete,
+            "interview_complete": self.interview_complete,
+            "project_type": self.project_type,
+            "stages": self._stages,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "RDTIInterviewSession":
+        """Restore session state from a serialised dict."""
+        session = cls()
+        session.stage_index = d.get("stage_index", 0)
+        session.collected_data = d.get("collected_data", {})
+        session.history = d.get("history", [])
+        session.stage_complete = d.get("stage_complete", False)
+        session.interview_complete = d.get("interview_complete", False)
+        session.project_type = d.get("project_type", None)
+        session._stages = d.get("stages", list(INTERVIEW_STAGES_NEW))
+        return session
 
 
 # ── Score and generate report ──────────────────────────────────────────────────
