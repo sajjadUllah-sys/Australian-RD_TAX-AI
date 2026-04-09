@@ -63,17 +63,19 @@ STAGE_LABELS_CONTINUING = [
 
 STAGE_PROMPTS = {
     "company_details": """You are collecting company details for an Australian RDTI (R&D Tax Incentive) claim.
-Ask for these details ONE AT A TIME — ask a single question, wait for the answer, then ask the next:
-1. Company legal name
-2. ABN (Australian Business Number — must be exactly 11 digits)
-3. Contact person name
-4. Contact email address
+The company legal name has ALREADY been provided by the user via a form field — it is stored in the collected data as "company_name". Do NOT ask for it again.
+
+Ask for these remaining details ONE AT A TIME — ask a single question, wait for the answer, then ask the next:
+1. ABN (Australian Business Number — must be exactly 11 digits)
+2. Contact person name
+3. Contact email address
 
 IMPORTANT RULES:
+- Do NOT ask for the company name — it is already known.
 - Ask ONE question at a time. Do NOT bundle questions.
 - If the user provides an ABN that is not exactly 11 digits, politely ask them to re-enter it.
-- When you have all 4 items, say [STAGE_COMPLETE] and summarise as JSON in a <data> block like:
-  <data>{"company_name": "...", "abn": "...", "contact_person": "...", "contact_email": "..."}</data>""",
+- When you have all 3 remaining items, say [STAGE_COMPLETE] and summarise as JSON in a <data> block like:
+  <data>{"abn": "...", "contact_person": "...", "contact_email": "..."}</data>""",
 
     "project_type": """You are determining whether this is a new or continuing R&D project for an RDTI claim.
 

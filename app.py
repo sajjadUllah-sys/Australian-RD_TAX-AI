@@ -351,10 +351,12 @@ def _get_fy_options():
 
 
 # ── Navbar ─────────────────────────────────────────────────────────────────────
-st.markdown("""
+_business_display = st.session_state.get("company_name", "")
+_navbar_subtitle = f"<span>{_business_display}</span>" if _business_display else "<span>Generate a compliance review report from your R&amp;D Tax Incentive plan</span>"
+st.markdown(f"""
 <div class="rdti-navbar">
     <h1>📋 RDTI Compliance Review</h1>
-    <span>Generate a compliance review report from your R&D Tax Incentive plan</span>
+    {_navbar_subtitle}
 </div>
 """, unsafe_allow_html=True)
 
@@ -385,22 +387,6 @@ if not st.session_state.restore_offered and st.session_state.mode is None:
 
 if st.session_state.mode is None:
     st.markdown("### How would you like to start?")
-
-    # Restore previous session option
-    restore_json = st.text_input(
-        "🔄 Paste saved session data to restore (optional)",
-        key="restore_input",
-        help="If you have a previous session's data, paste it here to restore. Otherwise, leave empty.",
-        label_visibility="collapsed",
-    )
-
-    # Hidden restore functionality via localStorage bridge
-    st.markdown("""
-    <div class="session-restore-banner" id="restore-banner" style="display:none;">
-        💾 <strong>Previous session found!</strong> Use the browser console to restore:
-        <code>copy(localStorage.getItem('rdti_session'))</code> → paste above
-    </div>
-    """, unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
@@ -565,9 +551,31 @@ elif st.session_state.mode == "manual":
     st.markdown("## ✏️ R&D Project Interview")
     st.markdown("Answer the AI's questions to build your complete RDTI report. Work through each section at your own pace.")
 
-    # Initialise session
+    # ── Business Name — first field the user sees ──────────────────────────────
+    if "company_name" not in st.session_state:
+        st.session_state.company_name = ""
+
+    business_name_input = st.text_input(
+        "🏢 Business Name",
+        value=st.session_state.company_name,
+        placeholder="Enter your business / company name",
+        key="business_name_field",
+        help="This will be used as the company legal name throughout the report.",
+    )
+    # Persist immediately on change
+    if business_name_input != st.session_state.company_name:
+        st.session_state.company_name = business_name_input
+
+    # Block the rest of the form until a business name is provided
+    if not st.session_state.company_name.strip():
+        st.info("👆 Please enter your business name above to begin the interview.")
+        st.stop()
+
+    # ── Initialise session (only after business name is set) ───────────────────
     if "interview_session" not in st.session_state:
         st.session_state.interview_session = RDTIInterviewSession()
+        # Pre-fill company name so the AI doesn't ask for it again
+        st.session_state.interview_session.collected_data["company_name"] = st.session_state.company_name
         st.session_state.chat_messages = []
         opening = st.session_state.interview_session.get_opening_message()
         st.session_state.chat_messages.append({"role": "assistant", "content": opening})
@@ -575,6 +583,10 @@ elif st.session_state.mode == "manual":
         st.session_state.abn_result = None
         st.session_state.fy_selected = False
         st.session_state.industry_selected = False
+
+    # Keep collected_data in sync if user edits the business name later
+    if "interview_session" in st.session_state:
+        st.session_state.interview_session.collected_data["company_name"] = st.session_state.company_name
 
     session: RDTIInterviewSession = st.session_state.interview_session
 
@@ -769,14 +781,16 @@ elif st.session_state.mode == "manual":
                 st.rerun()
 
     # Collected data sidebar
-    if session.collected_data:
-        with st.sidebar:
+    with st.sidebar:
+        # Always show business name at the top of the sidebar if set
+        if st.session_state.get("company_name"):
+            st.markdown(f"### 🏢 {st.session_state['company_name']}")
+            st.divider()
+        if session.collected_data:
             st.markdown("### 📊 Collected Data")
             st.markdown(f"**Activities found:** {len(session.collected_data.get('activities', []))}")
             if session.collected_data.get("project_title"):
                 st.markdown(f"**Project:** {session.collected_data['project_title']}")
-            if session.collected_data.get("company_name"):
-                st.markdown(f"**Company:** {session.collected_data['company_name']}")
             if session.collected_data.get("financial_year"):
                 st.markdown(f"**FY:** {session.collected_data['financial_year']}")
             if session.collected_data.get("industry"):
